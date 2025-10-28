@@ -1,72 +1,66 @@
-pipeline{
+pipeline {
     agent any
-    tools{
-        jdk 'jdk'
+    tools {
         nodejs 'node17'
+        jdk 'jdk17'
     }
-    environment {
-        SCANNER_HOME=tool 'sonar-scanner'
+    environment{
+        SCANNER_HOME=tool 'sonarqube'
     }
+
     stages {
-        stage('clean workspace'){
-            steps{
+        stage('Clean Workspace') {
+            steps {
                 cleanWs()
             }
         }
-        stage('Checkout from Git'){
-            steps{
-                git branch: 'main', credentialsId: 'github-token', url: 'https://github.com/Aseemakram19/starbucks-kubernetes.git'
-            }
-        }
-        stage("Sonarqube Analysis "){
-            steps{
-                withSonarQubeEnv('SonarQube') {
-                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=starbucks \
-                    -Dsonar.projectKey=starbucks '''
-                }
-            }
-        }
-        stage("quality gate"){
-           steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token' 
-                }
-            } 
-        }
-        stage('Install Dependencies') {
+        stage('Git Checkout') {
             steps {
-                sh "npm install"
+                git branch: 'main', credentialsId: 'git-cred', url: 'https://github.com/Namrathaaaaaa/DevSecOps-Starbucks.git'
             }
-        }        
-        stage('TRIVY FS SCAN') {
+        }
+        stage('Sonarqube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarqube') {
+                    sh '''
+                    $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=starbucks \
+                    -Dsonar.projectKey=starbucks
+                    '''
+                }
+            }
+        }
+        stage('Installing Dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+        stage('Trivy Scan') {
             steps {
                 sh "trivy fs . > trivyfs.txt"
             }
         }
-        stage("Docker Build & Push"){
-            steps{
-                script{
-                   withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){   
-                       sh "docker build -t starbucks ."
-                       sh "docker tag starbucks aseemakram19/starbucks:latest "
-                       sh "docker push aseemakram19/starbucks:latest "
-                    }
+        stage('Docker Image Build') {
+            steps {
+                withDockerRegistry(credentialsId: 'docker-cred') {
+                    sh 'docker build -t namratha3/starbucks:v2 .'
+                    sh 'docker tag namratha3/starbucks:v2 namratha3/starbucks:latest'
+                    sh 'docker push namratha3/starbucks:latest'
                 }
             }
         }
-        stage("TRIVY"){
-            steps{
-                sh "trivy image aseemakram19/starbucks:latest > trivyimage.txt" 
+        stage('Trivy Check') {
+            steps {
+                sh "trivy image namratha3/starbucks:latest > trivyimage.txt" 
             }
         }
-        stage('App Deploy to Docker container'){
-            steps{
-                sh 'docker run -d --name starbucks -p 3000:3000 aseemakram19/starbucks:latest'
+        stage('Docker deploy') {
+            steps {
+                sh "docker run --name starbucks -dp 3000:3000 namratha3/starbucks:latest"
             }
         }
-
     }
-    post {
+}
+post {
     always {
         script {
             def buildStatus = currentBuild.currentResult
