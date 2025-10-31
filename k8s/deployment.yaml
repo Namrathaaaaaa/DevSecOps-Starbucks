@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: starbucks-app
+  name: starbucks-app
+  namespace: starbucks
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: starbucks-app
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: starbucks-app
+    spec:
+      containers:
+      - image: namratha3/starbucks:latest
+        name: starbucks
+
+
