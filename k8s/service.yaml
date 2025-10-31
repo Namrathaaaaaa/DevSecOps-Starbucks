@@ -7,10 +7,12 @@ metadata:
   namespace: starbucks
 spec:
   ports:
-  - port: 3000
+  - nodePort: 32641
+    port: 3000
     protocol: TCP
     targetPort: 3000
   selector:
     app: starbucks-app
+  sessionAffinity: None
   type: NodePort
 
