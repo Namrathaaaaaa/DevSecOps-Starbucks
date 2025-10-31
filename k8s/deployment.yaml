@@ -10,7 +10,6 @@ spec:
   selector:
     matchLabels:
       app: starbucks-app
-  strategy: {}
   template:
     metadata:
       labels:
